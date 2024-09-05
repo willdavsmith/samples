@@ -1,20 +1,13 @@
-name: Test Samples (k3d and EKS)
+name: Test Sample Applications
 
 on:
   workflow_dispatch:
     inputs:
       version:
         description: "Radius version number to use (e.g. 0.1.0, 0.1.0-rc1, edge). Defaults to edge."
+        type: string
         required: false
         default: "edge"
-        type: string
-  push:
-    branches:
-      - v*.*
-      - edge
-    paths:
-      - "samples/**"
-      - ".github/workflows/**"
   pull_request:
     types: [opened, synchronize, reopened]
     branches:

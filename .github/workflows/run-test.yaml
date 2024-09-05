@@ -1,4 +1,4 @@
-name: Test Samples (k3d and EKS)
+name: Test Sample Application
 
 on:
   workflow_call:
@@ -58,17 +58,15 @@ on:
         type: string
 jobs:
   test:
-    name: ${{ inputs.name }}
+    name: Test Sample Application
     runs-on: ${{ inputs.os }}
     env:
-      BRANCH: ${{ github.base_ref || github.ref_name }}
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       AZURE_LOCATION: westus3
       AWS_REGION: us-west-2
       AWS_ZONES: us-west-2a,us-west-2b,us-west-2c
     if: |
-      github.event_name == 'schedule' || 
       github.event_name == 'workflow_dispatch' || 
+      (github.event_name == 'schedule' && github.repository == 'radius-project') || 
       (github.event_name == 'pull_request' && inputs.runOnPullRequest == true)
     steps:
       # Setup the test assets and configuration
@@ -241,11 +239,6 @@ jobs:
           npm ci
           npx playwright install --with-deps
           npx playwright test ${{ inputs.uiTestFile }} --retries 3
-      - name: TEST
-        if: always()
-        run: |
-          kubectl get pods -A
-          kubectl describe pods -A
       - name: Upload Playwright Results
         uses: actions/upload-artifact@v4
         if: always() && (steps.run-playwright-test.outcome == 'success' || steps.run-playwright-test.outcome == 'failure')
