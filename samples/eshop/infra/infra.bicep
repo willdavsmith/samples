@@ -117,7 +117,7 @@ output servicebus string = servicebus.name
 output eventBusConnectionString string = (AZURESERVICEBUSENABLED == 'True') ? servicebus.listSecrets().connectionString : rabbitmq.properties.host
 
 @description('Envoy image name')
-output envoyImageName string = 'envoyproxy/envoy'
+output envoyImageName string = 'eshop-envoy'
 
 @description('Envoy image tag')
 output envoyImageTag string = 'v1.32.3'
