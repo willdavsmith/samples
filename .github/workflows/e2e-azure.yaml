@@ -1,0 +1,58 @@
+# Registration stub for willdavsmith/samples default branch v0.59.
+# Replace this file only through the separately reviewed bootstrap commit.
+name: Azure resource type samples E2E
+
+on:
+  workflow_dispatch:
+    inputs:
+      sample:
+        description: Sample to run.
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - kafka-ui
+          - berriai-litellm
+          - mongo-express-mongo-express
+          - dockersamples-todo-list-app
+          - sosedoff-pgweb
+          - warpstreamlabs-bento
+          - radius-project-samples-demo
+          - sqlpad-sqlpad
+          - azure-search-api
+          - drakkan-sftpgo
+      radius_ref:
+        description: Radius git ref used to build the CLI, extension, and control plane.
+        required: true
+        default: ffc2344fc42366581090539346d68a831862cb7d
+        type: string
+      contrib_ref:
+        description: Immutable resource-types-contrib commit overlaid into the Radius checkout.
+        required: true
+        default: cf57799dfa1cf3ff64db767555d78d0bb3266eb3
+        type: string
+      location:
+        description: Azure location for the resource groups.
+        required: true
+        default: westus3
+        type: string
+      keep_resources:
+        description: Retain Azure resource groups for diagnosis.
+        required: true
+        default: false
+        type: boolean
+
+permissions: {}
+
+jobs:
+  registration-only:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 1
+    permissions: {}
+    steps:
+      - name: Select the implementation branch
+        run: |
+          echo "This default-branch file only registers workflow_dispatch."
+          echo "Choose the Azure E2E implementation branch in the Run workflow dialog."
+          exit 1
