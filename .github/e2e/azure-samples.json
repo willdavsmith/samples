@@ -126,9 +126,9 @@
       "uniqueNameParameter": "serverName",
       "uniqueNamePrefix": "radsql",
       "uniqueNameMaxLength": 63,
-      "appName": "sqlpad-azure-app-test",
+      "appName": "sqlpad",
       "appParameters": ["password"],
-      "containerResource": "sqlpadctr",
+      "containerResource": "sqlpad",
       "containerPort": 3000,
       "smoke": "sqlpad"
     },

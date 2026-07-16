@@ -456,7 +456,11 @@ jobs:
           params=()
           if jq -e 'index("password") != null' <<<"$APP_PARAMETERS" >/dev/null; then
             password="Aa1!$(openssl rand -hex 16)"
-            params+=(-p "password=$password")
+            if [[ "$SAMPLE" == "sqlpad-sqlpad" ]]; then
+              params+=(-p "sqlServerPassword=$password")
+            else
+              params+=(-p "password=$password")
+            fi
           fi
           if jq -e 'index("accountName") != null' <<<"$APP_PARAMETERS" >/dev/null; then
             params+=(-p "accountName=$UNIQUE_NAME")
