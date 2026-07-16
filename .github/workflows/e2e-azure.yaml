@@ -451,9 +451,33 @@ jobs:
         env:
           APP_PARAMETERS: ${{ steps.sample.outputs.app_parameters }}
           APP_DEPLOY_ATTEMPTS: ${{ steps.sample.outputs.app_deploy_attempts }}
+          RESOURCE_GROUP: ${{ steps.sample.outputs.resource_group }}
           UNIQUE_NAME: ${{ steps.sample.outputs.unique_name }}
         run: |
           params=()
+          if jq -e 'index("environment") != null' <<<"$APP_PARAMETERS" >/dev/null; then
+            params+=(-p "environment=azure")
+          fi
+          if jq -e 'index("postgresPassword") != null' <<<"$APP_PARAMETERS" >/dev/null; then
+            postgres_password="Radius-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-Postgres!"
+            echo "::add-mask::$postgres_password"
+            params+=(-p "postgresPassword=$postgres_password")
+          fi
+          if jq -e 'index("litellmMasterKey") != null' <<<"$APP_PARAMETERS" >/dev/null; then
+            litellm_master_key="sk-radius-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+            echo "::add-mask::$litellm_master_key"
+            params+=(-p "litellmMasterKey=$litellm_master_key")
+          fi
+          if jq -e 'index("openaiApiKey") != null' <<<"$APP_PARAMETERS" >/dev/null; then
+            openai_api_key="$(az cognitiveservices account keys list \
+              --resource-group "$RESOURCE_GROUP" \
+              --name "$UNIQUE_NAME" \
+              --query key1 \
+              --output tsv)"
+            test -n "$openai_api_key"
+            echo "::add-mask::$openai_api_key"
+            params+=(-p "openaiApiKey=$openai_api_key")
+          fi
           if jq -e 'index("password") != null' <<<"$APP_PARAMETERS" >/dev/null; then
             password="Aa1!$(openssl rand -hex 16)"
             params+=(-p "password=$password")

@@ -28,7 +28,12 @@
       "uniqueNameMaxLength": 64,
       "appName": "llm-azure-app-test",
       "appDeployAttempts": 3,
-      "appParameters": [],
+      "appParameters": [
+        "environment",
+        "postgresPassword",
+        "litellmMasterKey",
+        "openaiApiKey"
+      ],
       "containerResource": "litellmctr",
       "containerPort": 4000,
       "smoke": "litellm"
