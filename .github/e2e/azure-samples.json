@@ -79,7 +79,7 @@
       "uniqueNameMaxLength": 63,
       "needsClientIp": true,
       "appName": "pgweb",
-      "appParameters": ["postgresPassword"],
+      "appParameters": ["password"],
       "containerResource": "pgweb",
       "containerPort": 8081,
       "smoke": "pgweb"

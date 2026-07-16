@@ -32,12 +32,11 @@ config="$("$scripts/configure-sample.sh" "$metadata" kafka-ui 123 2)"
 config="$("$scripts/configure-sample.sh" "$metadata" sosedoff-pgweb 123 2)"
 [[ "$(sed -n 's/^resource_name=//p' <<<"$config")" == "postgres" ]]
 [[ "$(sed -n 's/^app_name=//p' <<<"$config")" == "pgweb" ]]
-[[ "$(sed -n 's/^app_parameters=//p' <<<"$config")" == '["postgresPassword"]' ]]
+[[ "$(sed -n 's/^app_parameters=//p' <<<"$config")" == '["password"]' ]]
 [[ "$(sed -n 's/^container_resource=//p' <<<"$config")" == "pgweb" ]]
 
 grep -Fq 'default: ffc2344fc42366581090539346d68a831862cb7d' "$workflow"
 grep -Fq 'default: cf57799dfa1cf3ff64db767555d78d0bb3266eb3' "$workflow"
-grep -Fq 'params+=(-p "postgresPassword=$postgres_password")' "$workflow"
 if grep -Eq 'build_radius_images|radius_image_(registry|tag|contrib_ref)|prebuilt' "$workflow"; then
   echo "Unverifiable prebuilt Radius image mode must not be present" >&2
   exit 1

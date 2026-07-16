@@ -458,10 +458,6 @@ jobs:
             password="Aa1!$(openssl rand -hex 16)"
             params+=(-p "password=$password")
           fi
-          if jq -e 'index("postgresPassword") != null' <<<"$APP_PARAMETERS" >/dev/null; then
-            postgres_password="Radius-E2E-$(openssl rand -hex 16)!"
-            params+=(-p "postgresPassword=$postgres_password")
-          fi
           if jq -e 'index("accountName") != null' <<<"$APP_PARAMETERS" >/dev/null; then
             params+=(-p "accountName=$UNIQUE_NAME")
           fi
