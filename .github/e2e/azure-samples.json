@@ -61,9 +61,9 @@
       "uniqueNamePrefix": "radmysql",
       "uniqueNameMaxLength": 63,
       "needsClientIp": true,
-      "appName": "mysql-azure-app-test",
-      "appParameters": ["password"],
-      "containerResource": "todoctr",
+      "appName": "todo-list-app",
+      "appParameters": ["mysqlPassword"],
+      "containerResource": "todo-list-app",
       "containerPort": 3000,
       "smoke": "todo"
     },

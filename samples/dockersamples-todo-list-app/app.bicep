@@ -1,54 +1,65 @@
 extension radius
-@description('The ID of your Radius Environment. Set automatically by the rad CLI.')
+
 param environment string
 
-@description('Database admin password. Marked @secure(); Radius encrypts it and injects it into the recipe and the container.')
 @secure()
-param password string
+param mysqlPassword string
 
-var databaseName = 'appdb'
-
-resource app 'Radius.Core/applications@2025-08-01-preview' = {
-  name: 'mysql-azure-app-test'
+resource todoApp 'Radius.Core/applications@2025-08-01-preview' = {
+  name: 'todo-list-app'
   properties: {
     environment: environment
   }
 }
 
-resource mysql 'Radius.Data/mySqlDatabases@2025-08-01-preview' = {
+resource mysqlDb 'Radius.Data/mySqlDatabases@2025-08-01-preview' = {
   name: 'mysql'
   properties: {
     environment: environment
-    application: app.id
-    version: '8.0'
-    database: databaseName
-
-    username: 'radadmin'
-    password: password
+    application: todoApp.id
+    database: 'todos'
+    version: '8.4'
+    username: 'myadmin'
+    password: mysqlPassword
   }
 }
 
-resource todoAppImage 'Radius.Compute/containerImages@2025-08-01-preview' = {
-  name: 'todo-app-image'
+resource mysqlRuntimeSecret 'Radius.Security/secrets@2025-08-01-preview' = {
+  name: 'mysql-runtime-secret'
   properties: {
     environment: environment
-    application: app.id
-
-    tag: 'v1.0.0'
-    build: {
-      source: 'git::https://github.com/docker/getting-started-todo-app.git//?ref=55680777bc46c59d3fe0ab9ff7e79ee947d0c757'
+    application: todoApp.id
+    data: {
+      password: {
+        value: mysqlPassword
+      }
     }
   }
 }
 
-resource todoctr 'Radius.Compute/containers@2025-08-01-preview' = {
-  name: 'todoctr'
+resource todoImage 'Radius.Compute/containerImages@2025-08-01-preview' = {
+  name: 'todo-list-app-image'
   properties: {
     environment: environment
-    application: app.id
+    application: todoApp.id
+    tag: '55680777bc46c59d3fe0ab9ff7e79ee947d0c757'
+    build: {
+      source: 'git::https://github.com/docker/getting-started-todo-app.git?ref=55680777bc46c59d3fe0ab9ff7e79ee947d0c757'
+      platforms: [
+        'linux/amd64'
+      ]
+    }
+  }
+}
+
+resource todoContainer 'Radius.Compute/containers@2025-08-01-preview' = {
+  name: 'todo-list-app'
+  properties: {
+    environment: environment
+    application: todoApp.id
     containers: {
       todo: {
-        image: todoAppImage.properties.imageReference
+        image: todoImage.properties.imageReference
         ports: {
           web: {
             containerPort: 3000
@@ -56,17 +67,21 @@ resource todoctr 'Radius.Compute/containers@2025-08-01-preview' = {
         }
         env: {
           MYSQL_HOST: {
-            value: mysql.properties.host
+            value: mysqlDb.properties.host
+          }
+          MYSQL_USER: {
+            value: 'myadmin'
           }
           MYSQL_DB: {
-            value: databaseName
-          }
-
-          MYSQL_USER: {
-            value: 'radadmin'
+            value: 'todos'
           }
           MYSQL_PASSWORD: {
-            value: password
+            valueFrom: {
+              secretKeyRef: {
+                secretName: mysqlRuntimeSecret.name
+                key: 'password'
+              }
+            }
           }
         }
       }
