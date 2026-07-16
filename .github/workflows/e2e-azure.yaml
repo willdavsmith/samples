@@ -468,6 +468,15 @@ jobs:
           if jq -e 'index("buildPlatform") != null' <<<"$APP_PARAMETERS" >/dev/null; then
             params+=(-p "buildPlatform=linux/amd64")
           fi
+          if jq -e 'index("postgresPassword") != null' <<<"$APP_PARAMETERS" >/dev/null; then
+            params+=(-p "postgresPassword=radius-db-verify-Pass1!")
+          fi
+          if jq -e 'index("litellmMasterKey") != null' <<<"$APP_PARAMETERS" >/dev/null; then
+            params+=(-p "litellmMasterKey=sk-radius-verify")
+          fi
+          if jq -e 'index("openaiApiKey") != null' <<<"$APP_PARAMETERS" >/dev/null; then
+            params+=(-p "openaiApiKey=sk-radius-e2e-placeholder")
+          fi
           deployed=false
           for attempt in $(seq 1 "$APP_DEPLOY_ATTEMPTS"); do
             if rad deploy "$SAMPLE_PATH/app.bicep" --environment azure "${params[@]}"; then

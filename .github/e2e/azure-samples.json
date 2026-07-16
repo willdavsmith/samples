@@ -11,7 +11,7 @@
       "uniqueNamePrefix": "radkafka",
       "uniqueNameMaxLength": 50,
       "appName": "kafka-azure-test",
-      "appParameters": [],
+      "appParameters": ["postgresPassword", "litellmMasterKey", "openaiApiKey"],
       "containerResource": "kafkauictr",
       "containerPort": 8080,
       "smoke": "kafka-ui"
