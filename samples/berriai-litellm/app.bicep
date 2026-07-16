@@ -1,60 +1,99 @@
 extension radius
 
-@description('The ID of your Radius Environment. Set automatically by the rad CLI.')
 param environment string
 
-resource app 'Radius.Core/applications@2025-08-01-preview' = {
-  name: 'llm-azure-app-test'
+@secure()
+param postgresPassword string
+
+@secure()
+param litellmMasterKey string
+
+@secure()
+param openaiApiKey string
+
+resource litellmApp 'Radius.Core/applications@2025-08-01-preview' = {
+  name: 'litellm'
   properties: {
     environment: environment
   }
 }
 
-resource model 'Radius.AI/models@2025-08-01-preview' = {
-  name: 'model'
+resource postgresDb 'Radius.Data/postgreSqlDatabases@2025-08-01-preview' = {
+  name: 'postgres'
   properties: {
     environment: environment
-    application: app.id
-    model: 'gpt-5-mini'
+    application: litellmApp.id
+    size: 'S'
+    database: 'litellm'
+    username: 'llmproxy'
+    password: postgresPassword
   }
 }
 
-resource litellmImage 'Radius.Compute/containerImages@2025-08-01-preview' = {
-  name: 'litellm-image'
+resource postgresRuntimeSecret 'Radius.Security/secrets@2025-08-01-preview' = {
+  name: 'postgres-runtime-secret'
   properties: {
     environment: environment
-    application: app.id
-    tag: 'v1.91.0'
-    build: {
-      source: 'git::https://github.com/BerriAI/litellm.git//?ref=v1.91.0'
+    application: litellmApp.id
+    data: {
+      password: {
+        value: postgresPassword
+      }
     }
   }
 }
 
-resource litellmctr 'Radius.Compute/containers@2025-08-01-preview' = {
-  name: 'litellmctr'
+resource appSecrets 'Radius.Security/secrets@2025-08-01-preview' = {
+  name: 'app-secrets'
   properties: {
     environment: environment
-    application: app.id
+    application: litellmApp.id
+    data: {
+      LITELLM_MASTER_KEY: {
+        value: litellmMasterKey
+      }
+      OPENAI_API_KEY: {
+        value: openaiApiKey
+      }
+    }
+  }
+}
+
+resource litellmConfig 'Radius.Security/secrets@2025-08-01-preview' = {
+  name: 'litellm-config'
+  properties: {
+    environment: environment
+    application: litellmApp.id
+    data: {
+      'config.yaml': {
+        value: '''
+model_list:
+  - model_name: gpt-4o-mini
+    litellm_params:
+      model: openai/gpt-4o-mini
+      api_key: os.environ/OPENAI_API_KEY
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY
+  store_model_in_db: true
+'''
+      }
+    }
+  }
+}
+
+resource litellmContainer 'Radius.Compute/containers@2025-08-01-preview' = {
+  name: 'litellm'
+  properties: {
+    environment: environment
+    application: litellmApp.id
     containers: {
       litellm: {
-        image: litellmImage.properties.imageReference
-        command: [
-          '/bin/sh'
-          '-c'
-          '''
-set -eu
-cat > /tmp/litellm.config.yaml <<'EOF'
-model_list:
-  - model_name: chat
-    litellm_params:
-      model: azure/chat
-      api_base: os.environ/AZURE_API_BASE
-      api_key: os.environ/AZURE_API_KEY
-      api_version: os.environ/AZURE_API_VERSION
-EOF
-exec litellm --config /tmp/litellm.config.yaml --host 0.0.0.0 --port 4000
-'''
+        image: 'ghcr.io/berriai/litellm-database:v1.91.0@sha256:6151ddc97c5dc4590740bd14646d78d48267d8b7a1bf398eeaffcd6729b8f0b9'
+        args: [
+          '--config'
+          '/etc/litellm/config.yaml'
+          '--port'
+          '4000'
         ]
         ports: {
           web: {
@@ -62,30 +101,74 @@ exec litellm --config /tmp/litellm.config.yaml --host 0.0.0.0 --port 4000
           }
         }
         env: {
-          AZURE_API_BASE: {
-            value: model.properties.endpoint
+          DATABASE_HOST: {
+            value: '${postgresDb.properties.host}:${postgresDb.properties.port}'
           }
-          AZURE_API_KEY: {
+          DATABASE_USERNAME: {
+            value: 'llmproxy'
+          }
+          DATABASE_NAME: {
+            value: 'litellm'
+          }
+          DATABASE_PASSWORD: {
             valueFrom: {
               secretKeyRef: {
-                secretName: model.properties.secrets.name
-                key: 'apiKey'
+                secretName: postgresRuntimeSecret.name
+                key: 'password'
               }
             }
           }
-          AZURE_API_VERSION: {
-            value: '2025-04-01-preview'
-          }
           LITELLM_MASTER_KEY: {
-            value: 'sk-radius-verify'
+            valueFrom: {
+              secretKeyRef: {
+                secretName: appSecrets.name
+                key: 'LITELLM_MASTER_KEY'
+              }
+            }
+          }
+          OPENAI_API_KEY: {
+            valueFrom: {
+              secretKeyRef: {
+                secretName: appSecrets.name
+                key: 'OPENAI_API_KEY'
+              }
+            }
           }
         }
+        volumeMounts: [
+          {
+            volumeName: 'config'
+            mountPath: '/etc/litellm'
+          }
+        ]
       }
     }
-    connections: {
-      model: {
-        source: model.id
+    volumes: {
+      config: {
+        secretName: litellmConfig.name
       }
     }
+  }
+}
+
+resource litellmRoute 'Radius.Compute/routes@2025-08-01-preview' = {
+  name: 'litellm-route'
+  properties: {
+    environment: environment
+    application: litellmApp.id
+    rules: [
+      {
+        matches: [
+          {
+            httpPath: '/'
+          }
+        ]
+        destinationContainer: {
+          resourceId: litellmContainer.id
+          containerName: 'litellm'
+          containerPort: litellmContainer.properties.containers.litellm.ports.web.containerPort
+        }
+      }
+    ]
   }
 }
