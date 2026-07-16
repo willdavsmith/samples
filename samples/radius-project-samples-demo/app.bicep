@@ -1,42 +1,39 @@
 extension radius
-@description('The ID of your Radius Environment. Set automatically by the rad CLI.')
+
 param environment string
 
-resource app 'Radius.Core/applications@2025-08-01-preview' = {
-  name: 'redis-azure-app-test'
+resource demoApp 'Radius.Core/applications@2025-08-01-preview' = {
+  name: 'demo'
   properties: {
     environment: environment
   }
 }
 
-resource redis 'Radius.Data/redisCaches@2025-08-01-preview' = {
+resource redisCache 'Radius.Data/redisCaches@2025-08-01-preview' = {
   name: 'redis'
   properties: {
     environment: environment
-    application: app.id
-
+    application: demoApp.id
     size: 'S'
   }
 }
 
 resource demoImage 'Radius.Compute/containerImages@2025-08-01-preview' = {
-  name: 'redis-demo-image'
+  name: 'demo-image'
   properties: {
     environment: environment
-    application: app.id
-
-    tag: 'demo-e2e'
+    application: demoApp.id
     build: {
       source: 'git::https://github.com/radius-project/samples.git//samples/demo?ref=190d9c4c84278980d9fae402330bd5ead76b31a5'
     }
   }
 }
 
-resource democtr 'Radius.Compute/containers@2025-08-01-preview' = {
-  name: 'democtr'
+resource demoContainer 'Radius.Compute/containers@2025-08-01-preview' = {
+  name: 'demo'
   properties: {
     environment: environment
-    application: app.id
+    application: demoApp.id
     containers: {
       demo: {
         image: demoImage.properties.imageReference
@@ -47,19 +44,9 @@ resource democtr 'Radius.Compute/containers@2025-08-01-preview' = {
         }
         env: {
           CONNECTION_REDIS_URL: {
-            valueFrom: {
-              secretKeyRef: {
-                secretName: redis.properties.secrets.name
-                key: 'url'
-              }
-            }
+            value: redisCache.properties.url
           }
         }
-      }
-    }
-    connections: {
-      redis: {
-        source: redis.id
       }
     }
   }
