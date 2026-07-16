@@ -11,7 +11,7 @@
       "uniqueNamePrefix": "radkafka",
       "uniqueNameMaxLength": 50,
       "appName": "kafka-azure-test",
-      "appParameters": ["postgresPassword", "litellmMasterKey", "openaiApiKey"],
+      "appParameters": [],
       "containerResource": "kafkauictr",
       "containerPort": 8080,
       "smoke": "kafka-ui"
@@ -28,7 +28,7 @@
       "uniqueNameMaxLength": 64,
       "appName": "llm-azure-app-test",
       "appDeployAttempts": 3,
-      "appParameters": [],
+      "appParameters": ["postgresPassword", "litellmMasterKey", "openaiApiKey"],
       "containerResource": "litellmctr",
       "containerPort": 4000,
       "smoke": "litellm"
