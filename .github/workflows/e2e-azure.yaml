@@ -451,7 +451,6 @@ jobs:
         env:
           APP_PARAMETERS: ${{ steps.sample.outputs.app_parameters }}
           APP_DEPLOY_ATTEMPTS: ${{ steps.sample.outputs.app_deploy_attempts }}
-          RESOURCE_GROUP: ${{ steps.sample.outputs.resource_group }}
           UNIQUE_NAME: ${{ steps.sample.outputs.unique_name }}
         run: |
           params=()
@@ -469,12 +468,7 @@ jobs:
             params+=(-p "litellmMasterKey=$litellm_master_key")
           fi
           if jq -e 'index("openaiApiKey") != null' <<<"$APP_PARAMETERS" >/dev/null; then
-            openai_api_key="$(az cognitiveservices account keys list \
-              --resource-group "$RESOURCE_GROUP" \
-              --name "$UNIQUE_NAME" \
-              --query key1 \
-              --output tsv)"
-            test -n "$openai_api_key"
+            openai_api_key="sk-radius-e2e-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
             echo "::add-mask::$openai_api_key"
             params+=(-p "openaiApiKey=$openai_api_key")
           fi
