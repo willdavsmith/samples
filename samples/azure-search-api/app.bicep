@@ -1,66 +1,67 @@
 extension radius
 
-@description('The ID of your Radius Environment. Set automatically by the rad CLI.')
 param environment string
 
-@description('Git source for the search API image. Override this when validating an unmerged samples branch.')
-param source string = 'git::https://github.com/radius-project/samples.git//samples/azure-search-api/src?ref=edge'
-
-resource app 'Radius.Core/applications@2025-08-01-preview' = {
-  name: 'search-azure-app-test'
+resource azureSearchApiApp 'Radius.Core/applications@2025-08-01-preview' = {
+  name: 'azure-search-api'
   properties: {
     environment: environment
   }
 }
 
-resource searchService 'Radius.AI/search@2025-08-01-preview' = {
+resource search 'Radius.AI/search@2025-08-01-preview' = {
   name: 'search'
   properties: {
     environment: environment
-    application: app.id
+    application: azureSearchApiApp.id
   }
 }
 
-resource searchApiImage 'Radius.Compute/containerImages@2025-08-01-preview' = {
-  name: 'search-api-image'
+resource azureSearchApiImage 'Radius.Compute/containerImages@2025-08-01-preview' = {
+  name: 'azure-search-api-image'
   properties: {
     environment: environment
-    application: app.id
-    tag: 'v1'
+    application: azureSearchApiApp.id
     build: {
-      source: source
+      source: 'git::https://github.com/radius-project/samples.git//samples/azure-search-api/src?ref=08cd6c30b316b622d6ee10426d9bb73a43d99ce1'
     }
   }
 }
 
-resource searchapictr 'Radius.Compute/containers@2025-08-01-preview' = {
-  name: 'searchapictr'
+resource azureSearchApiContainer 'Radius.Compute/containers@2025-08-01-preview' = {
+  name: 'azure-search-api'
   properties: {
     environment: environment
-    application: app.id
+    application: azureSearchApiApp.id
+    connections: {
+      search: {
+        source: search.id
+      }
+    }
     containers: {
-      searchapi: {
-        image: searchApiImage.properties.imageReference
-        ports: {
-          web: {
-            containerPort: 8080
-          }
-        }
+      api: {
+        image: azureSearchApiImage.properties.imageReference
         env: {
+          PORT: {
+            value: '8080'
+          }
+          SEARCH_INDEX_NAME: {
+            value: 'radius-sample'
+          }
           CONNECTION_SEARCH_APIKEY: {
             valueFrom: {
               secretKeyRef: {
-                secretName: searchService.properties.secrets.name
+                secretName: search.properties.secrets.name
                 key: 'apiKey'
               }
             }
           }
         }
-      }
-    }
-    connections: {
-      search: {
-        source: searchService.id
+        ports: {
+          web: {
+            containerPort: 8080
+          }
+        }
       }
     }
   }

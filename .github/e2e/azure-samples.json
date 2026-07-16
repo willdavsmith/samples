@@ -142,8 +142,8 @@
       "uniqueNameParameter": "searchServiceName",
       "uniqueNamePrefix": "radsearch",
       "uniqueNameMaxLength": 60,
-      "appName": "search-azure-app-test",
-      "appParameters": ["source"],
+      "appName": "azure-search-api",
+      "appParameters": [],
       "containerResource": "searchapictr",
       "containerPort": 8080,
       "smoke": "search-api"
