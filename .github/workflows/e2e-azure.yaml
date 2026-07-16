@@ -455,7 +455,9 @@ jobs:
         run: |
           params=()
           if jq -e 'index("environment") != null' <<<"$APP_PARAMETERS" >/dev/null; then
-            params+=(-p "environment=azure")
+            params+=(
+              -p "environment=/planes/radius/local/resourceGroups/default/providers/Radius.Core/environments/azure"
+            )
           fi
           if jq -e 'index("postgresPassword") != null' <<<"$APP_PARAMETERS" >/dev/null; then
             postgres_password="Radius-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-Postgres!"
