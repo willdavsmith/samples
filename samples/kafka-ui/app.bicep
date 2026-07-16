@@ -1,32 +1,30 @@
 extension radius
 
-@description('The ID of your Radius Environment. Set automatically by the rad CLI.')
 param environment string
 
-resource app 'Radius.Core/applications@2025-08-01-preview' = {
-  name: 'kafka-azure-test'
+resource kafkaUiApp 'Radius.Core/applications@2025-08-01-preview' = {
+  name: 'kafka-ui'
   properties: {
     environment: environment
   }
 }
 
-resource kafkaBroker 'Radius.Messaging/kafka@2025-08-01-preview' = {
+resource kafka 'Radius.Messaging/kafka@2025-08-01-preview' = {
   name: 'kafka'
   properties: {
     environment: environment
-    application: app.id
-    topic: 'events'
+    application: kafkaUiApp.id
   }
 }
 
-resource kafkauictr 'Radius.Compute/containers@2025-08-01-preview' = {
-  name: 'kafkauictr'
+resource kafkaUiContainer 'Radius.Compute/containers@2025-08-01-preview' = {
+  name: 'kafka-ui'
   properties: {
     environment: environment
-    application: app.id
+    application: kafkaUiApp.id
     containers: {
-      kafkaui: {
-        image: 'ghcr.io/kafbat/kafka-ui:v1.5.0'
+      kafkaUi: {
+        image: 'ghcr.io/kafbat/kafka-ui@sha256:7cda86a33344160309fdb65146332e4da65db81a945614f2fe32e210803f6fd1'
         ports: {
           web: {
             containerPort: 8080
@@ -34,38 +32,39 @@ resource kafkauictr 'Radius.Compute/containers@2025-08-01-preview' = {
         }
         env: {
           KAFKA_CLUSTERS_0_NAME: {
-            value: 'event-hubs'
+            value: 'local'
           }
-
           KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: {
-            value: '${kafkaBroker.properties.host}.servicebus.windows.net:9093'
+            value: kafka.properties.host
           }
-          KAFKA_CLUSTERS_0_PROPERTIES_SECURITY_PROTOCOL: {
-            value: 'SASL_SSL'
-          }
-          KAFKA_CLUSTERS_0_PROPERTIES_SASL_MECHANISM: {
-            value: 'PLAIN'
-          }
-
-          RAD_SECRET_CONNECTIONSTRING: {
-            valueFrom: {
-              secretKeyRef: {
-                secretName: kafkaBroker.properties.secrets.name
-                key: 'connectionString'
-              }
-            }
-          }
-
-          KAFKA_CLUSTERS_0_PROPERTIES_SASL_JAAS_CONFIG: {
-            value: 'org.apache.kafka.common.security.plain.PlainLoginModule required username="$ConnectionString" password="$(RAD_SECRET_CONNECTIONSTRING)";'
+          DYNAMIC_CONFIG_ENABLED: {
+            value: 'true'
           }
         }
       }
     }
-    connections: {
-      kafka: {
-        source: kafkaBroker.id
+  }
+}
+
+resource kafkaUiRoute 'Radius.Compute/routes@2025-08-01-preview' = {
+  name: 'kafka-ui-route'
+  properties: {
+    environment: environment
+    application: kafkaUiApp.id
+    kind: 'HTTP'
+    rules: [
+      {
+        matches: [
+          {
+            httpPath: '/'
+          }
+        ]
+        destinationContainer: {
+          resourceId: kafkaUiContainer.id
+          containerName: 'kafkaUi'
+          containerPort: 8080
+        }
       }
-    }
+    ]
   }
 }
